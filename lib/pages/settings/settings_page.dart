@@ -13,6 +13,7 @@ import 'tag_manage_page.dart';
 import 'category_manage_page.dart';
 import 'custom_field_manage_page.dart';
 import 'reminder_page.dart';
+import 'webdav_backup_page.dart';
 
 class SettingsPage extends ConsumerWidget {
   const SettingsPage({super.key});
@@ -63,6 +64,15 @@ class SettingsPage extends ConsumerWidget {
             title: const Text('导入数据'),
             subtitle: const Text('从 JSON 文件导入'),
             onTap: () => _importData(context, ref),
+          ),
+          ListTile(
+            leading: const Icon(Icons.cloud_outlined),
+            title: const Text('WebDAV 备份'),
+            subtitle: const Text('云端备份与恢复（坚果云/Nextcloud等）'),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const WebDavBackupPage()),
+            ),
           ),
           _buildSectionHeader('提醒'),
           ListTile(
