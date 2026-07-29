@@ -614,17 +614,17 @@ class _AssetEditPageState extends ConsumerState<AssetEditPage> {
             children: [
               Expanded(
                 child: OutlinedButton.icon(
-                  icon: const Icon(Icons.calendar_today),
+                  icon: const Icon(Icons.calendar_today, size: 18),
                   label: Text('启用: ${_startDate.toString().split(' ')[0]}'),
-                  onPressed: () => _pickDate(true, false),
+                  onPressed: () => _pickDate(isStart: true),
                 ),
               ),
               const SizedBox(width: 8),
               Expanded(
                 child: OutlinedButton.icon(
-                  icon: const Icon(Icons.event_busy),
+                  icon: const Icon(Icons.event_busy, size: 18),
                   label: Text(_endDate == null ? '失效日期' : '失效: ${_endDate!.toString().split(' ')[0]}'),
-                  onPressed: () => _pickDate(true, true),
+                  onPressed: () => _pickDate(isEnd: true),
                 ),
               ),
             ],
@@ -659,11 +659,11 @@ class _AssetEditPageState extends ConsumerState<AssetEditPage> {
             ),
             const SizedBox(height: 16),
             OutlinedButton.icon(
-              icon: const Icon(Icons.event_repeat),
-              label: Text(_nextRenewalDate == null 
-                ? '下次续费日期' 
+              icon: const Icon(Icons.event_repeat, size: 18),
+              label: Text(_nextRenewalDate == null
+                ? '下次续费日期'
                 : '续费: ${_nextRenewalDate!.toString().split(' ')[0]}'),
-              onPressed: () => _pickDate(false, false, isRenewal: true),
+              onPressed: () => _pickDate(isRenewal: true),
             ),
             const SizedBox(height: 8),
             SwitchListTile(
@@ -673,11 +673,11 @@ class _AssetEditPageState extends ConsumerState<AssetEditPage> {
             ),
             const SizedBox(height: 8),
             OutlinedButton.icon(
-              icon: const Icon(Icons.timer),
-              label: Text(_trialEndDate == null 
-                ? '免费试用截止（可选）' 
+              icon: const Icon(Icons.timer, size: 18),
+              label: Text(_trialEndDate == null
+                ? '免费试用截止（可选）'
                 : '试用: ${_trialEndDate!.toString().split(' ')[0]}'),
-              onPressed: () => _pickDate(false, false, isTrial: true),
+              onPressed: () => _pickDate(isTrial: true),
             ),
           ],
           const SizedBox(height: 16),
@@ -707,17 +707,60 @@ class _AssetEditPageState extends ConsumerState<AssetEditPage> {
     );
   }
 
-  Future<void> _pickDate(bool isStart, bool isEnd, {bool isRenewal = false, bool isTrial = false}) async {
+  Future<void> _pickDate({
+    bool isStart = false,
+    bool isEnd = false,
+    bool isRenewal = false,
+    bool isTrial = false,
+  }) async {
+    // 计算合适的初始日期
+    DateTime initialDate = DateTime.now();
+    DateTime firstDate = DateTime(2000);
+    DateTime lastDate = DateTime(2030);
+
+    if (isStart && _startDate != null) {
+      initialDate = _startDate;
+    } else if (isEnd && _endDate != null) {
+      initialDate = _endDate!;
+    } else if (isRenewal && _nextRenewalDate != null) {
+      initialDate = _nextRenewalDate!;
+    } else if (isTrial && _trialEndDate != null) {
+      initialDate = _trialEndDate!;
+    }
+
+    // 失效日期不能早于启用日期
+    if (isEnd && _startDate != null && initialDate.isBefore(_startDate)) {
+      initialDate = _startDate;
+    }
+    // 续费/试用不能早于启用日期
+    if ((isRenewal || isTrial) && _startDate != null && initialDate.isBefore(_startDate)) {
+      initialDate = _startDate;
+    }
+
     final date = await showDatePicker(
       context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(2000),
-      lastDate: DateTime(2030),
+      initialDate: initialDate,
+      firstDate: firstDate,
+      lastDate: lastDate,
+      builder: (context, child) {
+        // 让 DatePicker 跟随当前主题（亮/暗）
+        return Theme(
+          data: Theme.of(context),
+          child: child!,
+        );
+      },
     );
     if (date != null) {
       setState(() {
         if (isStart) {
           _startDate = date;
+          // 如果失效日期早于启用日期，自动调整
+          if (_endDate != null && _endDate!.isBefore(date)) {
+            _endDate = null;
+          }
+          if (_nextRenewalDate != null && _nextRenewalDate!.isBefore(date)) {
+            _nextRenewalDate = null;
+          }
         } else if (isEnd) {
           _endDate = date;
         } else if (isRenewal) {
