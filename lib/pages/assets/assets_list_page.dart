@@ -887,157 +887,327 @@ class AssetDetailPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final typeGradient = AppUI.gradientForAssetType(asset.type);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('资产详情'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.edit),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => AssetEditPage(existing: asset),
+      body: CustomScrollView(
+        slivers: [
+          SliverAppBar(
+            expandedHeight: 180,
+            pinned: true,
+            stretch: true,
+            backgroundColor: Colors.transparent,
+            foregroundColor: Colors.white,
+            flexibleSpace: FlexibleSpaceBar(
+              background: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: typeGradient,
+                  ),
                 ),
-              );
-            },
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 60, 16, 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.25),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              asset.status.label,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            asset.type.label,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.white.withValues(alpha: 0.85),
+                            ),
+                          ),
+                          if (asset.subCategory != null) ...[
+                            const SizedBox(width: 4),
+                            Text(
+                              '· ${asset.subCategory}',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.white.withValues(alpha: 0.85),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        asset.name,
+                        style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.edit, color: Colors.white),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => AssetEditPage(existing: asset),
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // 成本概览
+                  _buildCostOverview(context),
+                  const SizedBox(height: 16),
+                  // 时间信息
+                  _buildTimeSection(context),
+                  const SizedBox(height: 16),
+                  // 订阅信息
+                  if (asset.type == AssetType.subscription)
+                    _buildSubscriptionSection(context),
+                  const SizedBox(height: 16),
+                  // 备注
+                  if (asset.note != null && asset.note!.isNotEmpty)
+                    _buildNoteSection(context),
+                  const SizedBox(height: 32),
+                ],
+              ),
+            ),
           ),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
+    );
+  }
+
+  Widget _buildCostOverview(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardTheme.color,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.04),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    asset.name,
-                    style: Theme.of(context).textTheme.headlineMedium,
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: _getStatusColor(asset.status),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          asset.status.label,
-                          style: const TextStyle(color: Colors.white, fontSize: 12),
-                        ),
+          AppUI.sectionTitle(context, '成本概览', icon: Icons.account_balance_wallet_outlined),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '日均成本',
+                      style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '¥${asset.dailyCost.toStringAsFixed(2)}',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w700,
+                        color: Theme.of(context).colorScheme.primary,
                       ),
-                      const SizedBox(width: 8),
-                      Text(asset.type.label),
-                      if (asset.subCategory != null) ...[
-                        const SizedBox(width: 4),
-                        Text('· ${asset.subCategory}'),
-                      ],
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '价值信息',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  const SizedBox(height: 16),
-                  _buildInfoRow('购入价格', '¥${asset.purchasePrice.toStringAsFixed(2)}'),
-                  if (asset.currentValue != null)
-                    _buildInfoRow('当前估值', '¥${asset.currentValue!.toStringAsFixed(2)}'),
-                  if (asset.sellPrice != null)
-                    _buildInfoRow('卖出价格', '¥${asset.sellPrice!.toStringAsFixed(2)}'),
-                  _buildInfoRow('日均成本', '¥${asset.dailyCost.toStringAsFixed(2)}'),
-                  _buildInfoRow('月均成本', '¥${asset.monthlyCost.toStringAsFixed(2)}'),
-                  if (asset.profitOrLoss != null)
-                    _buildInfoRow('变现盈亏', asset.profitOrLoss! >= 0 
-                      ? '+¥${asset.profitOrLoss!.toStringAsFixed(2)}' 
-                      : '¥${asset.profitOrLoss!.toStringAsFixed(2)}'),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '时间信息',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  const SizedBox(height: 16),
-                  _buildInfoRow('启用日期', asset.startDate.toString().split(' ')[0]),
-                  if (asset.expiryDate != null)
-                    _buildInfoRow(
-                      asset.type == AssetType.subscription ? '到期日期' : '失效日期',
-                      asset.expiryDate!.toString().split(' ')[0],
                     ),
-                  _buildInfoRow('已用时长', '${asset.usedDays} 天'),
-                  if (asset.expiryDate != null) _buildRemainingDays(asset.expiryDate!),
-                ],
-              ),
-            ),
-          ),
-          if (asset.type == AssetType.subscription) ...[
-            const SizedBox(height: 16),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '订阅信息',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 16),
-                    _buildInfoRow('计费周期', asset.billingCycle.label),
-                    _buildInfoRow('每期费用', '¥${(asset.billingAmount ?? 0).toStringAsFixed(2)}'),
-                    if (asset.nextRenewalDate != null)
-                      _buildInfoRow('下次续费', asset.nextRenewalDate!.toString().split(' ')[0]),
-                    _buildInfoRow('自动续费', asset.autoRenew ? '是' : '否'),
-                    if (asset.trialEndDate != null)
-                      _buildInfoRow('免费试用截止', asset.trialEndDate!.toString().split(' ')[0]),
                   ],
                 ),
               ),
-            ),
-          ],
-          if (asset.note != null) ...[
-            const SizedBox(height: 16),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
+              Container(
+                width: 1,
+                height: 40,
+                color: Colors.grey.shade200,
+              ),
+              Expanded(
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Text(
-                      '备注',
-                      style: Theme.of(context).textTheme.titleMedium,
+                      '月均成本',
+                      style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
                     ),
-                    const SizedBox(height: 8),
-                    Text(asset.note!),
+                    const SizedBox(height: 4),
+                    Text(
+                      '¥${asset.monthlyCost.toStringAsFixed(2)}',
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                   ],
                 ),
               ),
+              Container(
+                width: 1,
+                height: 40,
+                color: Colors.grey.shade200,
+              ),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      '购入价格',
+                      style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '¥${asset.purchasePrice.toStringAsFixed(0)}',
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          const Divider(),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 12,
+            runSpacing: 8,
+            children: [
+              if (asset.currentValue != null)
+                AppUI.infoChip(
+                  label: '估值',
+                  value: '¥${asset.currentValue!.toStringAsFixed(2)}',
+                  icon: Icons.trending_up,
+                  valueColor: const Color(0xFF10B981),
+                ),
+              if (asset.sellPrice != null)
+                AppUI.infoChip(
+                  label: '卖出',
+                  value: '¥${asset.sellPrice!.toStringAsFixed(2)}',
+                  icon: Icons.sell,
+                  valueColor: const Color(0xFF3B82F6),
+                ),
+              if (asset.profitOrLoss != null)
+                AppUI.infoChip(
+                  label: '盈亏',
+                  value: asset.profitOrLoss! >= 0
+                      ? '+¥${asset.profitOrLoss!.toStringAsFixed(2)}'
+                      : '¥${asset.profitOrLoss!.toStringAsFixed(2)}',
+                  icon: asset.profitOrLoss! >= 0 ? Icons.trending_up : Icons.trending_down,
+                  valueColor: asset.profitOrLoss! >= 0
+                      ? const Color(0xFF10B981)
+                      : const Color(0xFFEF4444),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTimeSection(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardTheme.color,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          AppUI.sectionTitle(context, '时间信息', icon: Icons.schedule),
+          const SizedBox(height: 16),
+          _buildInfoRow('启用日期', asset.startDate.toString().split(' ')[0]),
+          if (asset.expiryDate != null)
+            _buildInfoRow(
+              asset.type == AssetType.subscription ? '到期日期' : '失效日期',
+              asset.expiryDate!.toString().split(' ')[0],
             ),
-          ],
+          _buildInfoRow('已用时长', '${asset.usedDays} 天'),
+          if (asset.expiryDate != null) _buildRemainingDays(asset.expiryDate!),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSubscriptionSection(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardTheme.color,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          AppUI.sectionTitle(context, '订阅信息', icon: Icons.subscriptions),
+          const SizedBox(height: 16),
+          _buildInfoRow('计费周期', asset.billingCycle.label),
+          _buildInfoRow('每期费用', '¥${(asset.billingAmount ?? 0).toStringAsFixed(2)}'),
+          if (asset.nextRenewalDate != null)
+            _buildInfoRow('下次续费', asset.nextRenewalDate!.toString().split(' ')[0]),
+          _buildInfoRow('自动续费', asset.autoRenew ? '是' : '否'),
+          if (asset.trialEndDate != null)
+            _buildInfoRow('免费试用截止', asset.trialEndDate!.toString().split(' ')[0]),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNoteSection(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardTheme.color,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          AppUI.sectionTitle(context, '备注', icon: Icons.notes),
+          const SizedBox(height: 12),
+          Text(
+            asset.note!,
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey.shade700,
+              height: 1.5,
+            ),
+          ),
         ],
       ),
     );
@@ -1045,12 +1215,18 @@ class AssetDetailPage extends ConsumerWidget {
   
   Widget _buildInfoRow(String label, String value) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(color: Colors.grey)),
-          Text(value, style: const TextStyle(fontWeight: FontWeight.bold)),
+          Text(
+            label,
+            style: TextStyle(fontSize: 13, color: Colors.grey.shade500),
+          ),
+          Text(
+            value,
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+          ),
         ],
       ),
     );
@@ -1083,18 +1259,5 @@ class AssetDetailPage extends ConsumerWidget {
         ],
       ),
     );
-  }
-  
-  Color _getStatusColor(AssetStatus status) {
-    switch (status) {
-      case AssetStatus.active:
-        return Colors.green;
-      case AssetStatus.retired:
-        return Colors.grey;
-      case AssetStatus.sold:
-        return Colors.blue;
-      case AssetStatus.discarded:
-        return Colors.red;
-    }
   }
 }
