@@ -9,6 +9,7 @@ import '../../models/media_item.dart';
 import '../../providers/media_providers.dart';
 import '../../services/api_search_service.dart';
 import '../../services/image_service.dart';
+import '../../widgets/app_ui.dart';
 
 class MediaListPage extends ConsumerStatefulWidget {
   const MediaListPage({super.key});
@@ -142,107 +143,157 @@ class _MediaListPageState extends ConsumerState<MediaListPage>
 
   Widget _buildMediaList(BuildContext context, List<MediaItem> items) {
     if (items.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              _getTypeIcon(_selectedType),
-              size: 64,
-              color: Colors.grey,
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              '暂无记录',
-              style: TextStyle(fontSize: 18, color: Colors.grey),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              '点击搜索按钮从 API 获取\n或点击右下角手动添加',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey),
-            ),
-          ],
-        ),
+      return AppUI.emptyState(
+        icon: _getTypeIcon(_selectedType),
+        title: '暂无记录',
+        subtitle: '点击搜索按钮从 API 获取\n或点击右下角手动添加',
       );
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
+    return GridView.builder(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        childAspectRatio: 0.62,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
+      ),
       itemCount: items.length,
       itemBuilder: (context, index) => _buildMediaCard(context, items[index]),
     );
   }
 
   Widget _buildMediaCard(BuildContext context, MediaItem item) {
-    return Card(
-      elevation: 2,
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      child: InkWell(
-        onTap: () => _navigateToMediaDetail(context, item.id),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardTheme.color,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: Theme.of(context).brightness == Brightness.dark ? 0.3 : 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => _navigateToMediaDetail(context, item.id),
+          borderRadius: BorderRadius.circular(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildCover(context, item),
-              const SizedBox(width: 16),
+              // 封面区
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                flex: 5,
+                child: Stack(
                   children: [
-                    Text(
-                      item.name,
-                      style: Theme.of(context).textTheme.titleMedium,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    if (item.author != null)
-                      Text(
-                        item.author!,
-                        style: const TextStyle(color: Colors.grey),
-                        overflow: TextOverflow.ellipsis,
+                    Positioned.fill(
+                      child: ClipRRect(
+                        borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                        child: _buildCover(context, item),
                       ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: _getStatusColor(item.status),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            item.status.label,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: Colors.white,
-                            ),
+                    ),
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: _getStatusColor(item.status).withValues(alpha: 0.92),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          item.status.label,
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
-                        if (item.rating != null) ...[
-                          const SizedBox(width: 8),
-                          Row(
-                            children: List.generate(5, (i) => Icon(
-                              Icons.star,
-                              size: 14,
-                              color: i < item.rating! ? Colors.yellow : Colors.grey,
-                            )),
-                          ),
-                        ],
-                      ],
+                      ),
                     ),
-                    if (item.platforms.isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 4),
-                        child: Wrap(
-                          spacing: 4,
-                          children: item.platforms.map((platform) => Chip(
-                            label: Text(platform),
-                            labelStyle: const TextStyle(fontSize: 12),
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          )).toList(),
+                    if (item.rating != null)
+                      Positioned(
+                        bottom: 8,
+                        left: 8,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.7),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.star, size: 12, color: Color(0xFFFFB400)),
+                              const SizedBox(width: 2),
+                              Text(
+                                '${item.rating}',
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                   ],
+                ),
+              ),
+              // 信息区
+              Expanded(
+                flex: 3,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        item.name,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 2),
+                      if (item.author != null)
+                        Text(
+                          item.author!,
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.grey.shade500,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      const Spacer(),
+                      if (item.platforms.isNotEmpty)
+                        Wrap(
+                          spacing: 4,
+                          runSpacing: 2,
+                          children: item.platforms.take(2).map((platform) => Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade100,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              platform,
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: Colors.grey.shade700,
+                              ),
+                            ),
+                          )).toList(),
+                        ),
+                    ],
+                  ),
                 ),
               ),
             ],
@@ -254,43 +305,61 @@ class _MediaListPageState extends ConsumerState<MediaListPage>
 
   Widget _buildCover(BuildContext context, MediaItem item) {
     if (item.localCoverPath != null && !kIsWeb) {
-      // Web 不支持 Image.file
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(8),
-        child: Image.network(
-          item.localCoverPath!,
-          width: 60,
-          height: 80,
-          fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) => _buildPlaceholderIcon(context, item.type),
-        ),
+      return Image.network(
+        item.localCoverPath!,
+        width: double.infinity,
+        height: double.infinity,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => _buildPlaceholderIcon(context, item.type),
       );
     }
     if (item.coverUrl != null) {
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(8),
-        child: Image.network(
-          item.coverUrl!,
-          width: 60,
-          height: 80,
-          fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) => _buildPlaceholderIcon(context, item.type),
-        ),
+      return Image.network(
+        item.coverUrl!,
+        width: double.infinity,
+        height: double.infinity,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => _buildPlaceholderIcon(context, item.type),
       );
     }
     return _buildPlaceholderIcon(context, item.type);
   }
 
   Widget _buildPlaceholderIcon(BuildContext context, MediaType type) {
+    final gradient = _getTypeGradient(type);
     return Container(
-      width: 60,
-      height: 80,
+      width: double.infinity,
+      height: double.infinity,
       decoration: BoxDecoration(
-        color: Colors.grey.shade200,
-        borderRadius: BorderRadius.circular(8),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: gradient,
+        ),
       ),
-      child: Icon(_getTypeIcon(type), size: 32, color: Colors.grey),
+      child: Center(
+        child: Icon(_getTypeIcon(type), size: 36, color: Colors.white.withValues(alpha: 0.7)),
+      ),
     );
+  }
+
+  List<Color> _getTypeGradient(MediaType type) {
+    switch (type) {
+      case MediaType.book:
+        return [const Color(0xFF667EEA), const Color(0xFF764BA2)];
+      case MediaType.novel:
+        return [const Color(0xFF8B5CF6), const Color(0xFFEC4899)];
+      case MediaType.movie:
+        return [const Color(0xFFEC4899), const Color(0xFF8B5CF6)];
+      case MediaType.tv:
+        return [const Color(0xFF3B82F6), const Color(0xFF06B6D4)];
+      case MediaType.anime:
+        return [const Color(0xFFFF8A3D), const Color(0xFFFF6B6B)];
+      case MediaType.manga:
+        return [const Color(0xFFF59E0B), const Color(0xFFEF4444)];
+      case MediaType.game:
+        return [const Color(0xFF10B981), const Color(0xFF3B82F6)];
+    }
   }
 
   IconData _getTypeIcon(MediaType type) {

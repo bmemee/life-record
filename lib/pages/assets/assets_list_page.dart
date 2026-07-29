@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../models/asset.dart';
 import '../../providers/asset_providers.dart';
+import '../../widgets/app_ui.dart';
 
 class AssetsListPage extends ConsumerStatefulWidget {
   const AssetsListPage({super.key});
@@ -102,94 +103,173 @@ class _AssetsListPageState extends ConsumerState<AssetsListPage> {
   
   Widget _buildAssetList(BuildContext context, List<Asset> assets) {
     if (assets.isEmpty) {
-      return const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.account_balance_wallet, size: 64, color: Colors.grey),
-            SizedBox(height: 16),
-            Text(
-              '暂无资产记录',
-              style: TextStyle(fontSize: 18, color: Colors.grey),
-            ),
-            SizedBox(height: 8),
-            Text(
-              '点击右下角按钮添加',
-              style: TextStyle(color: Colors.grey),
-            ),
-          ],
-        ),
+      return AppUI.emptyState(
+        icon: Icons.account_balance_wallet_outlined,
+        title: '暂无资产记录',
+        subtitle: '点击右下角按钮添加你的第一项资产',
       );
     }
-    
+
+    // 顶部统计概览
+    final totalAssets = assets.length;
+    final totalValue = assets.fold<double>(0, (sum, a) => sum + (a.currentValue ?? a.purchasePrice));
+    final activeCount = assets.where((a) => a.status == AssetStatus.active).length;
+    final subscriptionCount = assets.where((a) => a.type == AssetType.subscription).length;
+
     return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: assets.length,
-      itemBuilder: (context, index) => _buildAssetCard(context, assets[index]),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
+      itemCount: assets.length + 1,
+      itemBuilder: (context, index) {
+        if (index == 0) {
+          return Column(
+            children: [
+              // 概览卡片
+              Row(
+                children: [
+                  Expanded(
+                    child: AppUI.statCard(
+                      context: context,
+                      label: '资产总数',
+                      value: '$totalAssets',
+                      icon: Icons.inventory_2_outlined,
+                      gradient: const [Color(0xFF5B7FFF), Color(0xFF9C6BFF)],
+                      subtext: '服役中 $activeCount',
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: AppUI.statCard(
+                      context: context,
+                      label: '资产估值',
+                      value: '¥${totalValue.toStringAsFixed(0)}',
+                      icon: Icons.trending_up,
+                      gradient: const [Color(0xFF00BFA6), Color(0xFF11998E)],
+                      subtext: '订阅 $subscriptionCount 项',
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+            ],
+          );
+        }
+        return _buildAssetCard(context, assets[index - 1]);
+      },
     );
   }
   
   Widget _buildAssetCard(BuildContext context, Asset asset) {
-    return Card(
-      elevation: 2,
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      child: InkWell(
-        onTap: () => _navigateToAssetDetail(context, asset),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          asset.name,
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '${asset.type.label}${asset.subCategory != null ? ' · ${asset.subCategory}' : ''}',
-                          style: const TextStyle(color: Colors.grey),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: _getStatusColor(asset.status),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      asset.status.label,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Colors.white,
+    final typeGradient = AppUI.gradientForAssetType(asset.type);
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardTheme.color,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: Theme.of(context).brightness == Brightness.dark ? 0.3 : 0.04),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => _navigateToAssetDetail(context, asset),
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 左侧：类型图标
+                AppUI.iconBadge(
+                  icon: AppUI.iconForAssetType(asset.type),
+                  gradient: typeGradient,
+                ),
+                const SizedBox(width: 14),
+                // 右侧：内容
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // 名称 + 状态
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              asset.name,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: AppUI.bgForStatus(asset.status),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              asset.status.label,
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: AppUI.colorForStatus(asset.status),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
+                      const SizedBox(height: 4),
+                      // 类型 + 子分类
+                      Text(
+                        '${asset.type.label}${asset.subCategory != null ? ' · ${asset.subCategory}' : ''}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade500,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      // 金额信息
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        children: [
+                          AppUI.infoChip(
+                            label: '购入',
+                            value: '¥${asset.purchasePrice.toStringAsFixed(2)}',
+                            icon: Icons.payments_outlined,
+                          ),
+                          if (asset.currentValue != null && asset.currentValue != asset.purchasePrice)
+                            AppUI.infoChip(
+                              label: '估值',
+                              value: '¥${asset.currentValue!.toStringAsFixed(2)}',
+                              icon: Icons.trending_up,
+                              valueColor: const Color(0xFF10B981),
+                            ),
+                          if (asset.sellPrice != null)
+                            AppUI.infoChip(
+                              label: '卖出',
+                              value: '¥${asset.sellPrice!.toStringAsFixed(2)}',
+                              icon: Icons.sell,
+                              valueColor: const Color(0xFF3B82F6),
+                            ),
+                        ],
+                      ),
+                      if (asset.type == AssetType.subscription)
+                        _buildSubscriptionInfo(context, asset)
+                      else if (asset.type == AssetType.physicalItem)
+                        _buildPhysicalItemInfo(context, asset),
+                    ],
                   ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  _buildCostTag(context, '购入', asset.purchasePrice),
-                  if (asset.currentValue != null && asset.currentValue != asset.purchasePrice)
-                    _buildCostTag(context, '估值', asset.currentValue!),
-                  if (asset.sellPrice != null)
-                    _buildCostTag(context, '卖出', asset.sellPrice!),
-                ],
-              ),
-              if (asset.type == AssetType.subscription)
-                _buildSubscriptionInfo(context, asset),
-              if (asset.type == AssetType.physicalItem)
-                _buildPhysicalItemInfo(context, asset),
-            ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -210,44 +290,73 @@ class _AssetsListPageState extends ConsumerState<AssetsListPage> {
   }
   
   Widget _buildSubscriptionInfo(BuildContext context, Asset asset) {
+    final daysLeft = asset.renewalCountdown;
+    final isUrgent = daysLeft != null && daysLeft <= 7;
     return Padding(
-      padding: const EdgeInsets.only(top: 8),
-      child: Row(
-        children: [
-          const Icon(Icons.calendar_today, size: 16, color: Colors.grey),
-          const SizedBox(width: 4),
-          Text(
-            '${asset.billingCycle.label} ¥${(asset.billingAmount ?? 0).toStringAsFixed(2)}',
-            style: const TextStyle(color: Colors.grey),
-          ),
-          if (asset.nextRenewalDate != null)
-            Padding(
-              padding: const EdgeInsets.only(left: 8),
-              child: Text(
-                '下次续费: ${_formatDate(asset.nextRenewalDate!)}',
-                style: const TextStyle(color: Colors.orange),
+      padding: const EdgeInsets.only(top: 10),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(
+          color: (isUrgent ? Colors.orange : Theme.of(context).colorScheme.primary)
+              .withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.event_repeat,
+              size: 14,
+              color: isUrgent ? Colors.orange : Theme.of(context).colorScheme.primary,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              '${asset.billingCycle.label} ¥${(asset.billingAmount ?? 0).toStringAsFixed(2)}',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey.shade700,
+                fontWeight: FontWeight.w500,
               ),
             ),
-        ],
+            if (asset.nextRenewalDate != null) ...[
+              const SizedBox(width: 8),
+              const Text('·', style: TextStyle(color: Colors.grey)),
+              const SizedBox(width: 8),
+              Text(
+                daysLeft! <= 0 ? '已到期' : '$daysLeft 天后续费',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: isUrgent ? Colors.orange : Colors.grey.shade700,
+                ),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }
-  
+
   Widget _buildPhysicalItemInfo(BuildContext context, Asset asset) {
     return Padding(
-      padding: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.only(top: 10),
       child: Row(
         children: [
-          const Icon(Icons.timer, size: 16, color: Colors.grey),
+          Icon(Icons.timer_outlined, size: 14, color: Colors.grey.shade500),
           const SizedBox(width: 4),
           Text(
-            '已使用 ${asset.usedDays} 天',
-            style: const TextStyle(color: Colors.grey),
+            '已用 ${asset.usedDays} 天',
+            style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 10),
+          Icon(Icons.trending_down, size: 14, color: Theme.of(context).colorScheme.primary),
+          const SizedBox(width: 4),
           Text(
             '日均 ¥${asset.dailyCost.toStringAsFixed(2)}',
-            style: TextStyle(color: Theme.of(context).colorScheme.primary),
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: Theme.of(context).colorScheme.primary,
+            ),
           ),
         ],
       ),
