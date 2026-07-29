@@ -187,11 +187,11 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage> {
                 if (key.isEmpty || label.isEmpty) return;
 
                 final repo = ref.read(customCategoryRepositoryProvider);
-                await repo.insertCategory(CustomCategory(
-                  entityType: widget.entityType,
-                  categoryKey: key,
-                  categoryLabel: label,
-                  icon: selectedIcon,
+                await repo.insertCategory(CustomCategoriesCompanion(
+                  entityType: Value(widget.entityType),
+                  categoryKey: Value(key),
+                  categoryLabel: Value(label),
+                  icon: Value(selectedIcon),
                 ));
                 ref.invalidate(_categoriesProvider);
                 Navigator.pop(context);

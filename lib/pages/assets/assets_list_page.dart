@@ -641,6 +641,27 @@ class _AssetEditPageState extends ConsumerState<AssetEditPage> {
         .where((t) => t.isNotEmpty)
         .toList();
 
+    // 订阅类型：自动补全 billingAmount 和 nextRenewalDate
+    double? finalBillingAmount = double.tryParse(_billingAmountController.text);
+    DateTime? finalNextRenewalDate = _nextRenewalDate;
+    if (_type == AssetType.subscription) {
+      if (finalBillingAmount == null && price > 0) {
+        finalBillingAmount = price;
+      }
+      if (finalNextRenewalDate == null && _billingCycle != BillingCycle.oneTime) {
+        final cycleDays = switch (_billingCycle) {
+          BillingCycle.weekly => 7,
+          BillingCycle.monthly => 30,
+          BillingCycle.yearly => 365,
+          BillingCycle.custom => _endDate?.difference(_startDate).inDays ?? 365,
+          BillingCycle.oneTime => 0,
+        };
+        if (cycleDays > 0) {
+          finalNextRenewalDate = _startDate.add(Duration(days: cycleDays));
+        }
+      }
+    }
+
     final asset = Asset(
       id: widget.existing?.id,
       name: _nameController.text.trim(),
@@ -652,8 +673,8 @@ class _AssetEditPageState extends ConsumerState<AssetEditPage> {
       startDate: _startDate,
       endDate: _endDate,
       billingCycle: _billingCycle,
-      billingAmount: double.tryParse(_billingAmountController.text),
-      nextRenewalDate: _nextRenewalDate,
+      billingAmount: finalBillingAmount,
+      nextRenewalDate: finalNextRenewalDate,
       autoRenew: _autoRenew,
       trialEndDate: _trialEndDate,
       status: _status,
@@ -810,9 +831,13 @@ class AssetDetailPage extends ConsumerWidget {
                   ),
                   const SizedBox(height: 16),
                   _buildInfoRow('启用日期', asset.startDate.toString().split(' ')[0]),
-                  if (asset.endDate != null)
-                    _buildInfoRow('失效日期', asset.endDate!.toString().split(' ')[0]),
+                  if (asset.expiryDate != null)
+                    _buildInfoRow(
+                      asset.type == AssetType.subscription ? '到期日期' : '失效日期',
+                      asset.expiryDate!.toString().split(' ')[0],
+                    ),
                   _buildInfoRow('已用时长', '${asset.usedDays} 天'),
+                  if (asset.expiryDate != null) _buildRemainingDays(asset.expiryDate!),
                 ],
               ),
             ),
@@ -874,6 +899,35 @@ class AssetDetailPage extends ConsumerWidget {
         children: [
           Text(label, style: const TextStyle(color: Colors.grey)),
           Text(value, style: const TextStyle(fontWeight: FontWeight.bold)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRemainingDays(DateTime expiry) {
+    final remaining = expiry.difference(DateTime.now()).inDays;
+    String text;
+    Color color;
+    if (remaining < 0) {
+      text = '已过期 ${-remaining} 天';
+      color = Colors.red;
+    } else if (remaining == 0) {
+      text = '今天到期';
+      color = Colors.orange;
+    } else if (remaining <= 7) {
+      text = '还剩 $remaining 天';
+      color = Colors.orange;
+    } else {
+      text = '还剩 $remaining 天';
+      color = Colors.grey;
+    }
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          const Text('剩余时间', style: TextStyle(color: Colors.grey)),
+          Text(text, style: TextStyle(fontWeight: FontWeight.bold, color: color)),
         ],
       ),
     );

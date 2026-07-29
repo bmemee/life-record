@@ -100,7 +100,7 @@ class CustomStatusRepository {
       ..where((t) => t.entityType.equals(entityType))).get();
   }
   
-  Future<int> insertStatus(CustomStatus status) async {
+  Future<int> insertStatus(CustomStatusesCompanion status) async {
     return await _db.into(_db.customStatuses).insert(status);
   }
   
@@ -131,7 +131,7 @@ class CustomCategoryRepository {
       ..where((t) => t.entityType.equals(entityType))).get();
   }
   
-  Future<int> insertCategory(CustomCategory category) async {
+  Future<int> insertCategory(CustomCategoriesCompanion category) async {
     return await _db.into(_db.customCategories).insert(category);
   }
   

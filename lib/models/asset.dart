@@ -121,21 +121,69 @@ class Asset {
         createdAt = createdAt ?? DateTime.now(),
         updatedAt = updatedAt ?? DateTime.now();
 
+  /// 计费周期对应的天数（用于计算日均成本）
+  int get _cycleDays {
+    switch (billingCycle) {
+      case BillingCycle.weekly:
+        return 7;
+      case BillingCycle.monthly:
+        return 30;
+      case BillingCycle.yearly:
+        return 365;
+      case BillingCycle.custom:
+        if (endDate != null) {
+          return endDate!.difference(startDate).inDays;
+        }
+        return 365;
+      case BillingCycle.oneTime:
+        // 一次性付费：如果有结束日期用实际天数，否则默认按365天估算
+        if (endDate != null && endDate!.isAfter(startDate)) {
+          return endDate!.difference(startDate).inDays;
+        }
+        // 没有结束日期的，按已用天数或默认1年
+        return usedDays > 0 ? usedDays : 365;
+    }
+  }
+
   /// 计算已用天数
   int get usedDays {
     final end = endDate ?? DateTime.now();
-    return end.difference(startDate).inDays;
+    final days = end.difference(startDate).inDays;
+    return days < 0 ? 0 : days;
   }
 
   /// 计算日均成本
   double get dailyCost {
-    if (usedDays == 0) return purchasePrice;
+    // 订阅类型：按 billingAmount ÷ 计费周期天数
+    if (type == AssetType.subscription) {
+      final amount = billingAmount ?? purchasePrice;
+      if (amount == 0) return 0;
+      return amount / _cycleDays;
+    }
+
+    // 其他类型：按总成本 ÷ 有效天数
     final netCost = purchasePrice - (sellPrice ?? 0);
-    return netCost / usedDays;
+    if (netCost == 0) return 0;
+
+    final days = usedDays > 0 ? usedDays : _cycleDays;
+    return netCost / days;
   }
 
   /// 计算月均成本
   double get monthlyCost => dailyCost * 30;
+
+  /// 获取失效日期（订阅：下次续费前一天；其他：endDate）
+  DateTime? get expiryDate {
+    if (nextRenewalDate != null) {
+      return nextRenewalDate!.subtract(const Duration(days: 1));
+    }
+    if (endDate != null) return endDate;
+    // 订阅没有续费日期时，按 startDate + 一个计费周期推算
+    if (type == AssetType.subscription && billingCycle != BillingCycle.oneTime) {
+      return startDate.add(Duration(days: _cycleDays));
+    }
+    return null;
+  }
 
   /// 计算变现盈亏
   double? get profitOrLoss {

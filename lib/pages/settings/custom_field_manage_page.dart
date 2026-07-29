@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:drift/drift.dart' show Value;
 
 import '../../database/app_database.dart';
+import '../../providers/app_providers.dart';
 import '../../providers/custom_providers.dart';
 
 // 字段定义模型
@@ -48,14 +49,21 @@ class CustomFieldManagePage extends ConsumerStatefulWidget {
 }
 
 class _CustomFieldManagePageState extends ConsumerState<CustomFieldManagePage> {
-  final _fieldDefsProvider = FutureProvider<List<FieldDefinition>>((ref) async {
-    final db = ref.watch(databaseProvider);
-    final settings = await (db.select(db.appSettings)
-      ..where((t) => t.key.equals('${widget.entityType}_field_defs'))).getSingleOrNull();
-    if (settings == null || settings.value == null) return [];
-    final json = jsonDecode(settings.value!) as List;
-    return json.map((e) => FieldDefinition.fromJson(e as Map<String, dynamic>)).toList();
-  });
+  late final FutureProvider<List<FieldDefinition>> _fieldDefsProvider;
+
+  @override
+  void initState() {
+    super.initState();
+    final entityType = widget.entityType;
+    _fieldDefsProvider = FutureProvider<List<FieldDefinition>>((ref) async {
+      final db = ref.watch(databaseProvider);
+      final settings = await (db.select(db.appSettings)
+        ..where((t) => t.key.equals('${entityType}_field_defs'))).getSingleOrNull();
+      if (settings == null || settings.value == null) return [];
+      final json = jsonDecode(settings.value!) as List;
+      return json.map((e) => FieldDefinition.fromJson(e as Map<String, dynamic>)).toList();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {

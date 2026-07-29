@@ -14,7 +14,7 @@ class ReminderPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final upcomingAssetsAsync = ref.watch(upcomingRenewalsProvider(30));
+    final upcomingAssetsAsync = ref.watch(upcomingRenewalsProvider);
 
     return Scaffold(
       appBar: AppBar(
