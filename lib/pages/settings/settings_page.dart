@@ -10,6 +10,9 @@ import '../../services/export_import_service.dart';
 import '../../services/notification_service.dart';
 import '../../services/settings_service.dart';
 import 'tag_manage_page.dart';
+import 'category_manage_page.dart';
+import 'custom_field_manage_page.dart';
+import 'reminder_page.dart';
 
 class SettingsPage extends ConsumerWidget {
   const SettingsPage({super.key});
@@ -64,9 +67,12 @@ class SettingsPage extends ConsumerWidget {
           _buildSectionHeader('提醒'),
           ListTile(
             leading: const Icon(Icons.notifications),
-            title: const Text('检查到期提醒'),
-            subtitle: const Text('手动检查即将续费的订阅'),
-            onTap: () => _checkReminders(context, ref),
+            title: const Text('提醒中心'),
+            subtitle: const Text('查看续费提醒和试用到期通知'),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const ReminderPage()),
+            ),
           ),
           ListTile(
             leading: const Icon(Icons.alarm),
@@ -436,6 +442,78 @@ class SettingsPage extends ConsumerWidget {
       Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => const TagManagePage()),
+      );
+      return;
+    }
+
+    if (type == 'category') {
+      showModalBottomSheet(
+        context: context,
+        builder: (context) => SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.account_balance_wallet),
+                title: const Text('资产管理分类'),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const CategoryManagePage(entityType: 'asset')),
+                  );
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.movie),
+                title: const Text('娱乐记录分类'),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const CategoryManagePage(entityType: 'media')),
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+      );
+      return;
+    }
+
+    if (type == 'field') {
+      showModalBottomSheet(
+        context: context,
+        builder: (context) => SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.account_balance_wallet),
+                title: const Text('资产自定义字段'),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const CustomFieldManagePage(entityType: 'asset')),
+                  );
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.movie),
+                title: const Text('娱乐自定义字段'),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const CustomFieldManagePage(entityType: 'media')),
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
       );
       return;
     }

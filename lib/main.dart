@@ -8,6 +8,7 @@ import 'router/app_router.dart';
 import 'theme/app_theme.dart';
 import 'providers/app_providers.dart';
 import 'services/settings_service.dart';
+import 'services/notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -24,6 +25,11 @@ void main() async {
     if (savedColor != null) {
       container.read(primaryColorProvider.notifier).state = savedColor;
     }
+  } catch (_) {}
+
+  // 初始化通知服务
+  try {
+    await container.read(notificationServiceProvider).initialize();
   } catch (_) {}
 
   runApp(

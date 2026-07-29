@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/media_item.dart';
 import '../../providers/media_providers.dart';
 import '../../services/api_search_service.dart';
+import '../../services/image_service.dart';
 
 class MediaListPage extends ConsumerStatefulWidget {
   const MediaListPage({super.key});
@@ -607,6 +608,8 @@ class _MediaEditPageState extends ConsumerState<MediaEditPage> {
   int? _rating;
   DateTime? _startDate;
   DateTime? _finishDate;
+  String? _coverUrl;
+  String? _localCoverPath;
 
   @override
   void initState() {
@@ -625,6 +628,8 @@ class _MediaEditPageState extends ConsumerState<MediaEditPage> {
     _rating = widget.existing?.rating;
     _startDate = widget.existing?.startDate;
     _finishDate = widget.existing?.finishDate;
+    _coverUrl = widget.existing?.coverUrl;
+    _localCoverPath = widget.existing?.localCoverPath;
   }
 
   @override
@@ -653,6 +658,47 @@ class _MediaEditPageState extends ConsumerState<MediaEditPage> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          // 封面选择
+          Center(
+            child: GestureDetector(
+              onTap: _pickCover,
+              child: Container(
+                width: 120,
+                height: 160,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade200,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey.shade300),
+                ),
+                child: _localCoverPath != null
+                    ? ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: kIsWeb
+                            ? Image.network(_localCoverPath!, fit: BoxFit.cover)
+                            : null, // Native 需要用 file image，这里简化处理
+                      )
+                    : _coverUrl != null
+                        ? ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.network(
+                              _coverUrl!,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => _buildPlaceholder(),
+                            ),
+                          )
+                        : _buildPlaceholder(),
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Center(
+            child: TextButton.icon(
+              icon: const Icon(Icons.image, size: 18),
+              label: const Text('选择封面'),
+              onPressed: _pickCover,
+            ),
+          ),
+          const SizedBox(height: 16),
           TextField(
             controller: _nameController,
             decoration: const InputDecoration(
@@ -818,6 +864,8 @@ class _MediaEditPageState extends ConsumerState<MediaEditPage> {
       platforms: platforms,
       tags: tags,
       note: _noteController.text.trim().isEmpty ? null : _noteController.text.trim(),
+      coverUrl: _coverUrl,
+      localCoverPath: _localCoverPath,
       startDate: _startDate,
       finishDate: _finishDate,
       createdAt: widget.existing?.createdAt,
@@ -864,6 +912,28 @@ class _MediaEditPageState extends ConsumerState<MediaEditPage> {
       if (mounted) {
         Navigator.pop(context);
       }
+    }
+  }
+
+  Widget _buildPlaceholder() {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(Icons.add_photo_alternate, size: 40, color: Colors.grey.shade500),
+        const SizedBox(height: 8),
+        Text('点击选择封面', style: TextStyle(color: Colors.grey.shade500, fontSize: 12)),
+      ],
+    );
+  }
+
+  Future<void> _pickCover() async {
+    final imageService = ref.read(imageServiceProvider);
+    final path = await imageService.pickAndSaveImage();
+    if (path != null) {
+      setState(() {
+        _localCoverPath = path;
+        _coverUrl = null; // 清除网络封面
+      });
     }
   }
 }
