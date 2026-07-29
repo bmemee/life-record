@@ -1,0 +1,9 @@
+{
+  "buildCommand": "flutter pub get && dart run build_runner build --delete-conflicting-outputs && flutter build web --release",
+  "outputDirectory": "build/web",
+  "framework": null,
+  "installCommand": "echo 'skip'",
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}

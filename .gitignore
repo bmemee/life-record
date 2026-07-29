@@ -1,0 +1,30 @@
+# 忽略构建产物
+build/
+.dart_tool/
+.dart/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+ios/
+android/
+linux/
+macos/
+windows/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Flutter
+.flutter-plugins
+.flutter-plugins-dependencies
+
+# 编译生成
+*.g.dart
+!lib/database/app_database.g.dart
+
+# 其他
+*.log
